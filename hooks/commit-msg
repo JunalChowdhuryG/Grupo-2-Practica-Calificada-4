@@ -4,7 +4,7 @@ MENSAJE=$(cat "$MSJ_COMMIT")
 
 # Lista de prefijos estandar
 # https://www.conventionalcommits.org/en/v1.0.0/#specification
-PATRON="^(feat|fix|refactor|docs|test|chore|style|ci|build|perf|revert|merge)\[#([0-9]+)\]: .+"
+PATRON="^(feat|fix|refactor|docs|test|chore|style|ci|build|perf|revert|merge|setup)\[#([0-9]+)\]: .+"
 
 if ! echo "$MENSAJE" | grep -Eq "$PATRON"; then
     echo "Error: El mensaje del commit debe seguir el formato '<tipo>[#n]: mensaje'"
