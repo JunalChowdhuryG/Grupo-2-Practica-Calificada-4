@@ -1,0 +1,23 @@
+2025-06-21 19:22:54,453 - ERROR - Directory /app/data does not exist
+2025-06-21 19:27:13,441 - ERROR - Directory /app/data does not exist
+2025-06-21 19:27:40,548 - ERROR - Config file ./docs/workflows.yaml not found
+2025-06-21 19:27:47,690 - ERROR - Config file docs/workflows.yaml not found
+2025-06-22 12:30:24,183 - ERROR - Config file /app/docs/workflows.yaml not found
+2025-06-22 16:48:13,566 - ERROR - Config file /app/docs/workflows.yaml not found
+2025-06-22 16:49:43,508 - INFO - Monitoreando: /app/data
+2025-06-22 16:49:43,522 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-22 16:56:31,656 - INFO - Mensaje recibido: Hello
+2025-06-22 16:56:31,656 - INFO - Ejecutando accion: python /app/src/notify.py
+2025-06-22 17:11:15,923 - INFO - Monitoreando: /app/data
+2025-06-22 17:11:15,934 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-22 17:11:41,422 - INFO - Monitoreando: /app/data
+2025-06-22 17:11:41,429 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-22 17:11:56,880 - INFO - Mensaje recibido: Hello
+2025-06-22 17:11:56,880 - INFO - Ejecutando accion: python /app/src/notify.py
+2025-06-22 17:12:21,223 - INFO - Mensaje recibido: wasaa
+2025-06-22 17:12:21,223 - INFO - Ejecutando accion: python /app/src/notify.py
+2025-06-22 17:32:07,917 - INFO - Monitoreando: /app/data
+2025-06-22 17:32:07,929 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-22 17:33:57,962 - DEBUG - Evento detectado: FileCreatedEvent(src_path='/app/data/test_file.txt', dest_path='', event_type='created', is_directory=False, is_synthetic=False)
+2025-06-22 17:33:57,963 - INFO - Archivo creado: /app/data/test_file.txt
+2025-06-22 17:33:57,963 - INFO - Ejecutando accion: /app/scripts/process_data.sh /app/data/test_file.txt
