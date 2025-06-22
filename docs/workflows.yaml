@@ -1,0 +1,7 @@
+workflows:
+  - event: file_created
+    path: /app/data
+    action: /app/scripts/process_data.sh <file>
+  - event: message_received
+    queue: redis://redis:6379/0
+    action: python /app/src/notify.py
