@@ -1,16 +1,16 @@
 #!/bin/bash
 set -e
-echo "DEBUG: Script started with args: $@" >> /app/reports/process_data_debug.log
+echo "DEBUG: Script inicializa con argumento: $@" >> /app/reports/process_data_debug.log
 if [ $# -ne 1 ]; then
-    echo "ERROR: Exactly one file argument required" >> /app/reports/process_data_debug.log
+    echo "ERROR: Se requiere solo un argumento " >> /app/reports/process_data_debug.log
     exit 1
 fi
 FILE="$1"
-echo "DEBUG: Processing file: $FILE" >> /app/reports/process_data_debug.log
+echo "DEBUG: Procesando: $FILE" >> /app/reports/process_data_debug.log
 if [ ! -f "$FILE" ]; then
-    echo "ERROR: File $FILE does not exist" >> /app/reports/process_data_debug.log
+    echo "ERROR:  $FILE no existe" >> /app/reports/process_data_debug.log
     exit 1
 fi
-echo "$(date -u +'%Y-%m-%d %H:%M:%S') - Processing file: $FILE" >> /app/reports/processed_files.log
+echo "$(date -u +'%Y-%m-%d %H:%M:%S') - Procesando: $FILE" >> /app/reports/processed_files.log
 cat "$FILE" >> /app/reports/processed_files.log
-echo "DEBUG: File processed successfully" >> /app/reports/process_data_debug.log
+echo "DEBUG: Proceso exitoso" >> /app/reports/process_data_debug.log
