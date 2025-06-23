@@ -70,7 +70,7 @@ def listen_redis(queue, workflows):
         exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     data_dir = "/app/data"
     config_path = "/app/docs/workflows.yaml"
     if not os.path.exists(data_dir):
