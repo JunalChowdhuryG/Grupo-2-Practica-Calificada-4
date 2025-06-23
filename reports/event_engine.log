@@ -1,0 +1,15 @@
+2025-06-23 02:07:33,606 - INFO - Monitoreando: /app/data
+2025-06-23 02:07:33,621 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-23 02:08:02,555 - ERROR - Error de Redis: Error 111 connecting to redis:6379. Connection refused.
+2025-06-23 02:31:30,032 - ERROR - No se encontro /app/docs/workflows.yaml 
+2025-06-23 02:34:03,521 - INFO - Monitoreando: /app/data
+2025-06-23 02:34:03,533 - INFO - Subscrito a Redis queue: redis://redis:6379/0
+2025-06-23 02:36:27,685 - INFO - Mensaje recibido: Hola Mundo
+2025-06-23 02:36:27,685 - INFO - Ejecutando accion: python /app/src/notify.py
+2025-06-23 03:10:17,514 - INFO - Monitoreando: /app/data
+2025-06-23 03:10:17,526 - INFO - Suscrito a Redis queue: redis://redis:6379/0
+2025-06-23 03:14:24,636 - INFO - Mensaje recibido: Hola Mundo
+2025-06-23 03:14:24,636 - INFO - Ejecutando accion: python /app/src/notify.py
+2025-06-23 03:23:18,875 - DEBUG - Evento detectado: FileCreatedEvent(src_path='/app/data/internal_test.txt', dest_path='', event_type='created', is_directory=False, is_synthetic=False)
+2025-06-23 03:23:18,876 - INFO - Archivo creado: /app/data/internal_test.txt
+2025-06-23 03:23:18,876 - INFO - Ejecutando accion: /app/scripts/process_data.sh /app/data/internal_test.txt
