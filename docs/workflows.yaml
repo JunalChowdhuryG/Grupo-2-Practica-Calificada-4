@@ -5,3 +5,6 @@ workflows:
   - event: message_received
     queue: redis://redis:6379/0
     action: python /app/src/notify.py
+  - event: k8s_deploy
+    manifest: /app/k8s/<manifest>
+    action: python /app/src/k8s_deploy.py <manifest>
