@@ -8,3 +8,4 @@ workflows:
   - event: k8s_deploy
     manifest: /app/k8s/<manifest>
     action: python /app/src/k8s_deploy.py <manifest>
+    depends_on: ['process_file']
