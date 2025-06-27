@@ -33,9 +33,25 @@ class FileEventHandler(watchdog.events.FileSystemEventHandler):
                 if wf["event"] == "file_created" and event.src_path.startswith(
                     wf["path"]
                 ):
-                    action = wf["action"].replace("<file>", event.src_path)
-                    logger.info(f"Ejecutando accion: {action}")
-                    os.system(action)
+                    if check_dependencies(wf):
+                        action = wf["action"].replace("<file>", event.src_path)
+                        logger.info(f"Ejecutando acción: {action}")
+                        exit_code = os.system(action)
+                        workflow_id = wf.get("id", "")
+                        status = "success" if exit_code == 0 else "failed"
+                        update_workflow_state(workflow_id, status)
+                    else:
+                        logger.warning(f"Dependencias no cumplidas para workflow {wf.get('id', '')}")
+                elif wf["event"] == "k8s_deploy" and event.src_path.startswith(wf.get("path", "")):
+                    if check_dependencies(wf):
+                        action = wf["action"].replace("<manifest>", wf["manifest"])
+                        logger.info(f"Ejecutando acción: {action}")
+                        exit_code = os.system(action)
+                        workflow_id = wf.get("id", "")
+                        status = "success" if exit_code == 0 else "failed"
+                        update_workflow_state(workflow_id, status)
+                    else:
+                        logger.warning(f"Dependencias no cumplidas para workflow {wf.get('id', '')}")
 
 
 # Carga la configuracion de workflows desde un YAML
@@ -70,7 +86,7 @@ def listen_redis(queue, workflows):
         exit(1)
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":
     data_dir = "/app/data"
     config_path = "/app/docs/workflows.yaml"
     if not os.path.exists(data_dir):
