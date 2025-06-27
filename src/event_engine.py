@@ -6,6 +6,7 @@ import yaml
 import redis
 import logging
 import threading
+from src.workflow_deps import check_dependencies, update_workflow_state
 
 # Configura el sistema para escribir un log en un archivo y en la consola
 logging.basicConfig(
