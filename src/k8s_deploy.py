@@ -89,7 +89,7 @@ def deploy(manifest_path):
         return check_deployment_status(deployment_name, namespace)
     return False
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     import sys
     if len(sys.argv) != 2:
         logger.error("Uso: python k8s_deploy.py <manifest_path>")
