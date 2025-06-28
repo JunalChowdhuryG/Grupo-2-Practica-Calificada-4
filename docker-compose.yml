@@ -4,6 +4,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./reports:/app/reports
+    command: pytest tests/ --cov=src --cov-report=term-missing
     depends_on:
       - redis
   redis:
