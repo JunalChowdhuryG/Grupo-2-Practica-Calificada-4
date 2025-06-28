@@ -53,7 +53,7 @@ def test_manejador_eventos_archivo_valido(monkeypatch, capturar_log):
     log = capturar_log.getvalue()
     # verifica los log son correctos
     assert "Archivo creado: /app/data/test5.txt" in log
-    assert "Ejecutando accion: /app/scripts/process_data.sh /app/data/test5.txt" in log
+    assert "Ejecutando acción: /app/scripts/process_data.sh /app/data/test5.txt" in log
 
 
 # test para manejar eventos de archivos en directorios
