@@ -1,11 +1,14 @@
 workflows:
-  - event: file_created
+  - id: process_file
+    event: file_created
     path: /app/data
     action: /app/scripts/process_data.sh <file>
-  - event: message_received
+  - id: notify_message
+    event: message_received
     queue: redis://redis:6379/0
     action: python /app/src/notify.py
-  - event: k8s_deploy
-    manifest: /app/k8s/<manifest>
+  - id: k8s_nginx
+    event: k8s_deploy
+    manifest: /app/k8s/nginx-deployment.yaml
     action: python /app/src/k8s_deploy.py <manifest>
     depends_on: ['process_file']
