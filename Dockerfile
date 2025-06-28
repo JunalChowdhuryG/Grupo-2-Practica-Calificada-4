@@ -9,6 +9,7 @@ RUN chmod -R 777 /app/data /app/reports
 COPY . .
 #permisos escritura
 RUN echo "chmod -R 777 /app/data /app/reports" > /app/init.sh
+ENV PYTHONPATH="/app"
 #permisos ejecucion
 RUN chmod +x /app/init.sh
 CMD ["/bin/bash", "-c", "/app/init.sh && python src/event_engine.py"]
