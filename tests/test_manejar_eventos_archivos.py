@@ -13,76 +13,75 @@ def capturar_log():
     handler = logging.StreamHandler(flujo_log)
     # nivel de log
     handler.setLevel(logging.DEBUG)
-    # formato del loger
+    # formato del logger
     formato = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     # asignamos el formato al handler
     handler.setFormatter(formato)
     # creamos el logger
+    logger = logging.getLogger("src.event_engine")
+    logger.handlers = []
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
     yield flujo_log
     # cerramos el handler al finalizar
     handler.close()
 
 
-# test para manejar eventos de archivos
-def test_manejador_eventos_archivo_valido(monkeypatch, capturar_log):
+# test para manejar eventos de archivos con accion script
+def test_manejador_eventos_archivo_valido_script(monkeypatch, capturar_log):
     # flujo para la creacion de archivos
     workflows = [
         {
+            "id": "process_file",
             "event": "file_created",
             "path": "/app/data",
+            "action_type": "script",
             "action": "/app/scripts/process_data.sh <file>",
+            "recursive": True
         }
     ]
-    # logger para capturar los eventos
-    logger = logging.getLogger("src.event_engine")
-    # limpiar los handler
-    logger.handlers = []
-    # nivel de log
-    logger.setLevel(logging.DEBUG)
-    # se dirige el log al flujo capturado
-    logger.addHandler(logging.StreamHandler(capturar_log))
     # creamos objeto del manejador de eventos
     handler = FileEventHandler(workflows)
-    # para evitar ejecuciones reales
-    monkeypatch.setattr("os.system", lambda x: None)
-    # creamos  evento simulado
-    evento = type("Event", (), {"src_path": "/app/data/test5.txt", "is_directory": False})()
+    # simula subprocess.run para evitar ejecuciones reales
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: type("Result", (), {"returncode": 0})())
+    # simula check_dependencies para que devuelva True
+    monkeypatch.setattr("src.workflow_deps.check_dependencies", lambda x: True)
+    # creamos evento simulado
+    evento = type("Event", (), {"src_path": "/app/data/test.txt", "is_directory": False})()
     # metodo manejar el evento
     handler.on_created(evento)
     # capturamos el log
     log = capturar_log.getvalue()
-    # verifica los log son correctos
-    assert "Archivo creado: /app/data/test5.txt" in log
-    assert "Ejecutando acción: /app/scripts/process_data.sh /app/data/test5.txt" in log
+    # verifica los logs son correctos
+    assert "Archivo creado: /app/data/test.txt" in log
+    assert "Ejecutando acción: /app/scripts/process_data.sh /app/data/test.txt" in log
 
 
-# test para manejar eventos de archivos en directorios
-def test_manejador_eventos_archivo_directorio(monkeypatch, capturar_log):
+# test para manejar eventos con recursive false
+def test_manejador_eventos_recursive_false(monkeypatch, capturar_log):
     # flujo para la creacion de archivos
     workflows = [
         {
+            "id": "process_file",
             "event": "file_created",
             "path": "/app/data",
+            "action_type": "script",
             "action": "/app/scripts/process_data.sh <file>",
+            "recursive": False
         }
     ]
-    # logger para capturar los eventos
-    logger = logging.getLogger("src.event_engine")
-    # limpiar los handler
-    logger.handlers = []
-    # nivel de log
-    logger.setLevel(logging.DEBUG)
-    # se dirige el log al flujo capturado
-    logger.addHandler(logging.StreamHandler(capturar_log))
     # creamos objeto del manejador de eventos
     handler = FileEventHandler(workflows)
-    # para evitar ejecuciones reales
-    monkeypatch.setattr("os.system", lambda x: None)
-    # creamos evento simulado para un directorio
-    event = type("Event", (), {"src_path": "/app/data/subdir", "is_directory": True})()
+    # simula subprocess.run para evitar ejecuciones reales
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: type("Result", (), {"returncode": 0})())
+    # simula check_dependencies para que devuelva True
+    monkeypatch.setattr("src.workflow_deps.check_dependencies", lambda x: True)
+    # creamos evento simulado en un subdirectorio
+    evento = type("Event", (), {"src_path": "/app/data/subdir/test.txt", "is_directory": False})()
     # metodo manejar el evento
-    handler.on_created(event)
+    handler.on_created(evento)
     # capturamos el log
     log = capturar_log.getvalue()
-    # verifica que no se ha creado un archivo
-    assert "Archivo creado" not in log
+    # verifica que no se ejecuta la accion
+    assert "Archivo creado: /app/data/subdir/test.txt" in log
+    assert "Ejecutando acción" not in log
