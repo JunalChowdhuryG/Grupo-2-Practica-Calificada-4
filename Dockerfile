@@ -3,9 +3,9 @@ WORKDIR /app
 COPY requirements.txt .
 #instalar librerias
 RUN pip install -r requirements.txt
-RUN mkdir -p /app/data /app/reports
+RUN mkdir -p /app/data /app/reports /app/k8s /app/data/k8s
 #permisos escritura
-RUN chmod -R 777 /app/data /app/reports
+RUN chmod -R 777 /app/data /app/reports /app/k8s /app/data/k8s
 COPY . .
 #permisos escritura
 RUN echo "chmod -R 777 /app/data /app/reports" > /app/init.sh
