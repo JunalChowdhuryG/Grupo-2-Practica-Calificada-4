@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 STATE_FILE = "/app/data/workflow_state.json"
 
 def init_state():
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
     if not os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'w') as f:
             json.dump({}, f)
@@ -26,10 +27,11 @@ def update_workflow_state(workflow_id, status):
             state = json.load(f)
         state[workflow_id] = status
         with open(STATE_FILE, 'w') as f:
-            json.dump(state, f)
+            json.dump(state, f, indent=2)
         logger.info(f"Estado actualizado: {workflow_id} -> {status}")
     except Exception as e:
         logger.error(f"Error actualizando estado: {e}")
+        raise
 
 def check_dependencies(workflow):
     init_state()
