@@ -14,11 +14,15 @@ def capturar_log():
     handler = logging.StreamHandler(flujo_log)
     # nivel de log
     handler.setLevel(logging.DEBUG)
-    # formato del loger
+    # formato del logger
     formato = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     # asignamos el formato al handler
     handler.setFormatter(formato)
     # creamos el logger
+    logger = logging.getLogger("src.event_engine")
+    logger.handlers = []
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
     yield flujo_log
     # cerramos el handler al finalizar
     handler.close()
@@ -31,6 +35,7 @@ def test_escuchar_redis_valido(monkeypatch, capturar_log):
         {
             "event": "message_received",
             "queue": "redis://redis:6379/0",
+            "action_type": "script",
             "action": "python /app/src/notify.py",
         }
     ]
@@ -43,24 +48,19 @@ def test_escuchar_redis_valido(monkeypatch, capturar_log):
         def pubsub(self):
             return self.pubsub_instance
 
-    # mock para simular comportamieno de pubsub de redis
+    # mock para simular comportamiento de pubsub de redis
     class MockPubSub:
-        # simula suscricion
+        # simula suscripcion
         def subscribe(self, *args):
             pass
 
         # simula recibir mensaje
         def listen(self):
             return [{"type": "message", "data": "Hola"}]
-    # reemplaza Redis y os.system por mocks
+    # reemplaza Redis.from_url por mock
     monkeypatch.setattr("redis.Redis.from_url", lambda *args, **kwargs: MockRedis())
-    # reemplaza os.system evita ejecucio comandos externos
-    monkeypatch.setattr("os.system", lambda x: None)
-    # configura logger para capturar logs
-    logger = logging.getLogger("src.event_engine")
-    logger.handlers = []
-    logger.setLevel(logging.INFO)
-    logger.addHandler(logging.StreamHandler(capturar_log))
+    # reemplaza subprocess.run para evitar ejecucion comandos externos
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: type("Result", (), {"returncode": 0})())
     # ejecuta funcion listen_redis con workflows
     try:
         listen_redis("redis://redis:6379/0", workflows)
@@ -77,23 +77,20 @@ def test_escuchar_redis_valido(monkeypatch, capturar_log):
 
 # test para error de redis
 def test_escuchar_redis_error(monkeypatch, capturar_log):
-    # funcion simula errir de redis al conectar
+    # funcion simula error de redis al conectar
     def raise_redis_error(*args, **kwargs):
         raise redis.RedisError("Connection failed")
     # reemplaza Redis.from_url para simular error
     monkeypatch.setattr("redis.Redis.from_url", raise_redis_error)
     # configura logger para capturar logs
     logger = logging.getLogger("src.event_engine")
-    # limpiar handlers
     logger.handlers = []
-    # nivel log
     logger.setLevel(logging.ERROR)
-    # asignar flujo log al logger
     logger.addHandler(logging.StreamHandler(capturar_log))
-    # se espera que se lance SystemExit al intentar escuchar redis-falla
+    # se espera que se lance SystemExit al intentar escuchar redis
     with pytest.raises(SystemExit):
         listen_redis("redis://redis:6379/0", [])
     # captura log
     log = capturar_log.getvalue()
-    # verifica mensaje de error enlog
+    # verifica mensaje de error en log
     assert "Error de Redis: Connection failed" in log
