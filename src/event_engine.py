@@ -7,8 +7,8 @@ import redis
 import logging
 import threading
 import subprocess
+from src.k8s_deploy import deploy
 from src.workflow_deps import check_dependencies, update_workflow_state
-from src.workflow_deps import deploy
 
 
 # Configura el sistema para escribir un log en un archivo y en la consola

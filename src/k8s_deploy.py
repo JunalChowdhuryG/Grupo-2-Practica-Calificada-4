@@ -8,7 +8,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("app/reports/k8s_deploy.log"),
+        logging.FileHandler("/app/reports/k8s_deploy.log"),
         logging.StreamHandler()
     ]
 )
@@ -18,7 +18,7 @@ def load_manifest(manifest_path):
     """Cargamos el manifiesto Kubernetes desde el archivo YAML."""
     try:
         with open(manifest_path, 'r') as f:
-            return list(yaml.safe_load(f))
+            return list(yaml.safe_load_all(f))
     except FileNotFoundError:
         logger.error(f"Manifiesto {manifest_path} no encontrado")
         raise
