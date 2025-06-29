@@ -65,6 +65,7 @@ def apply_manifest(manifest):
         else:
             logger.error(f"Tipo de manifiesto no soportado: {kind}")
             return False
+        return True
     except ApiException as e:
         logger.error(f"Error aplicando manifiesto: {e}")
         return False
