@@ -2,13 +2,17 @@ workflows:
   - id: process_file
     event: file_created
     path: /app/data
+    action_type: script
     action: /app/scripts/process_data.sh <file>
+    recursive: false
   - id: notify_message
     event: message_received
     queue: redis://redis:6379/0
+    action_type: script
     action: python /app/src/notify.py
   - id: k8s_nginx
-    event: k8s_deploy
+    event: file_created
+    path: /app/data/k8s 
+    action_type: kubernetes
     manifest: /app/k8s/nginx-deployment.yaml
-    action: python /app/src/k8s_deploy.py <manifest>
     depends_on: ['process_file']
