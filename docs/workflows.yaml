@@ -7,7 +7,7 @@ workflows:
     recursive: false
   - id: notify_message
     event: message_received
-    queue: redis://redis:6379/0
+    queue: kafka://kafka:9092/notifications
     action_type: script
     action: python /app/src/notify.py
   - id: k8s_nginx
