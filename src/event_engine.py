@@ -3,10 +3,10 @@ import time
 import watchdog.events
 from watchdog.observers.polling import PollingObserver
 import yaml
-import redis
 import logging
 import threading
 import subprocess
+from kafka import KafkaConsumer
 from src.k8s_deploy import deploy
 from src.workflow_deps import check_dependencies, update_workflow_state
 
@@ -70,32 +70,34 @@ def load_workflows(config_path):
         logger.error(f"Error parseando {config_path}: {e}")
         exit(1)
 
-
-# Manejo de la comunicacion con Redis
-def listen_redis(queue, workflows):
+def listen_kafka(queue, workflows):
     try:
-        r = redis.Redis.from_url(queue, decode_responses=True)
-        pubsub = r.pubsub()
-        pubsub.subscribe("notifications")
-        logger.info(f"Suscrito a Redis queue: {queue}")
-        for message in pubsub.listen():
-            if message["type"] == "message":
-                logger.info(f"Mensaje recibido: {message['data']}")
-                for wf in workflows:
-                    if wf["event"] == "message_received" and wf["queue"] == queue:
-                        logger.info(f"Ejecutando accion: {wf['action']}")
-                        result = subprocess.run(wf["action"], shell=True, capture_output=True, text=True)
-                        status = "success" if result.returncode == 0 else "failed"
-                        update_workflow_state(wf.get("id", ""), status)
-    except redis.RedisError as e:
-        logger.error(f"Error de Redis: {e}")
+        broker, topic = queue.replace("kafka://", "").split("/", 1)
+        consumer = KafkaConsumer(
+            topic,
+            bootstrap_servers=[broker],
+            auto_offset_reset='earliest',
+            group_id='event_engine_group',
+            value_deserializer=lambda x: x.decode('utf-8')
+        )
+        logger.info(f"Suscrito a Kafka topic: {topic} at {broker}")
+        for message in consumer:
+            logger.info(f"Mensaje recibido: {message.value}")
+            for wf in workflows:
+                if wf["event"] == "message_received" and wf["queue"] == queue:
+                    action = f"{wf['action']} \"{message.value}\""
+                    logger.info(f"Ejecutando acción: {action}")
+                    result = subprocess.run(action, shell=True, capture_output=True, text=True)
+                    status = "success" if result.returncode == 0 else "failed"
+                    update_workflow_state(wf.get("id", ""), status)
+    except Exception as e:
+        logger.error(f"Error de Kafka: {e}")
         exit(1)
 
 
 if __name__ == "__main__": # pragma: no cover
     data_dir = "/app/data"
     config_path = "/app/docs/workflows.yaml"
-    redis_url = "redis://localhost:6379/0"
 
     if not os.path.exists(data_dir):
         logger.error(f"Directorio  {data_dir} no existe")
@@ -116,12 +118,12 @@ if __name__ == "__main__": # pragma: no cover
     time.sleep(2)
     logger.info(f"Monitoreando: {data_dir}")
 
-    # Redis listener
+    # Kafka listener
     for wf in workflows:
         if wf["event"] == "message_received":
-            redis_thread = threading.Thread(target=listen_redis, args=(wf["queue"], workflows))
-            redis_thread.daemon = True
-            redis_thread.start()
+            kafka_thread = threading.Thread(target=listen_kafka, args=(wf["queue"], workflows))
+            kafka_thread.daemon = True
+            kafka_thread.start()
     try:
         while True:
             time.sleep(1)
