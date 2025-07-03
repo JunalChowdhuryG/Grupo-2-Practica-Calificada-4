@@ -9,7 +9,12 @@ import threading
 import subprocess
 from src.k8s_deploy import deploy
 from src.workflow_deps import check_dependencies, update_workflow_state
-
+import pybreaker
+from src.circuit_breakers import (
+    script_circuit_breaker,
+    CircuitListener,
+    safe_subprocess_run
+)
 
 # Configura el sistema para escribir un log en un archivo y en la consola
 logging.basicConfig(
@@ -43,9 +48,22 @@ class FileEventHandler(watchdog.events.FileSystemEventHandler):
                             if wf.get("action_type") == "script":
                                 action = wf["action"].replace("<file>", event.src_path)
                                 logger.info(f"Ejecutando acción: {action}")
-                                result = subprocess.run(action, shell=True, capture_output=True, text=True)
-                                status = "success" if result.returncode == 0 else "failed"
-                                update_workflow_state(wf.get("id",""), status)
+                                try:
+                                    action = wf["action"].replace("<file>", event.src_path)
+                                    result = safe_subprocess_run(action, shell=True, capture_output=True, text=True)
+                                    status = "success" if result.returncode == 0 else "failed"
+                                    logger.info("Script ejecutado exitosamente {action}")
+                                except pybreaker.CircuitBreakerError as e:
+                                    logger.error(f"Circuit breaker abierto: {e}")
+                                    status = "circuit_breaker_open"
+                                except subprocess.CalledProcessError as e:
+                                    logger.error(f"Error al ejecutar script: {e}")
+                                    status = "failed"
+                                except Exception as e:
+                                    logger.error(f"Error inesperado: {e}")
+                                    status = "failed"
+                                update_workflow_state(wf.get("id", ""), status)
+                               
                             elif wf.get("action_type") == "kubernetes":
                                 logger.info(f"Ejecutando acción de Kubernetes: {wf['manifest']}")
                                 succes = deploy(wf["manifest"])
