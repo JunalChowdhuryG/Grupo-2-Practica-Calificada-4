@@ -16,13 +16,13 @@ services:
       - "6379:6379"
     networks:
       - kind
-  jaeger:
+  jaeger: 
     image: jaegertracing/all-in-one:1.55
-    ports:
-      - "16686:16686"  # Interfaz Jaeger
-      - "6831:6831/udp"  # Datos de trazado
-    networks:
-      - kind
+    ports: 
+      - "16686:16686" # Intefaz de Jaeger
+      - "6831:6831/udp" # Trazing de opentelemtry
+    networks: 
+      - kind 
 networks:
   kind:
     external: true

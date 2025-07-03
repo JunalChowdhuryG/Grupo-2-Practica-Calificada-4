@@ -1,3 +1,9 @@
+from opentelemetry import trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import Status, StatusCode
 import os
 import time
 import watchdog.events
@@ -10,6 +16,25 @@ import subprocess
 from src.k8s_deploy import deploy
 from src.workflow_deps import check_dependencies, update_workflow_state
 
+# Setup del tracer
+trace.set_tracer_provider(
+    TracerProvider(
+        resource=Resource.create({SERVICE_NAME: "event-engine"})
+    )
+)
+# Jaeger porque usamos docker compose y no local 
+# Exportador que enviaras las trazas a jaeger
+jaeger_exporter = JaegerExporter(
+    agent_host_name="jaeger", 
+    agent_port=6831,
+)
+# Obtiene el TracerProvider global 
+trace.get_tracer_provider().add_span_processor(
+#que es un tipo de procesador de spans que los agrupa en lotes antes de enviarlos
+    BatchSpanProcessor(jaeger_exporter)
+)
+#Obetenr el objeto tracer 
+tracer = trace.get_tracer(__name__)
 
 # Configura el sistema para escribir un log en un archivo y en la consola
 logging.basicConfig(
@@ -32,28 +57,49 @@ class FileEventHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
         logger.debug(f"Evento detectado: {event}")
         if not event.is_directory:
-            logger.info(f"Archivo creado: {event.src_path}")
-            for wf in self.workflows:
-                if wf["event"] == "file_created" :
-                    esta_en_directorio = event.src_path.startswith(wf["path"])
-                    es_recursivo = wf.get("recursive", True)
-                    es_directorio_exacto = os.path.dirname(event.src_path) == wf["path"].rstrip("/")
-                    if esta_en_directorio and (es_recursivo or es_directorio_exacto):
-                        if check_dependencies(wf):
-                            if wf.get("action_type") == "script":
-                                action = wf["action"].replace("<file>", event.src_path)
-                                logger.info(f"Ejecutando acción: {action}")
-                                result = subprocess.run(action, shell=True, capture_output=True, text=True)
-                                status = "success" if result.returncode == 0 else "failed"
-                                update_workflow_state(wf.get("id",""), status)
-                            elif wf.get("action_type") == "kubernetes":
-                                logger.info(f"Ejecutando acción de Kubernetes: {wf['manifest']}")
-                                succes = deploy(wf["manifest"])
-                                status = "success" if succes else "failed"
-                                update_workflow_state(wf.get("id", ""), status)
-                        else:
-                            logger.warning(f"Dependencias no cumplidas para workflow {wf.get('id', '')}")
-
+            with tracer.start_as_current_span("file_create") as span:
+                span.set_attribute("file_path",event.src_path)
+                span.set_attribute("is_directory",event.is_directory)
+                logger.info(f"Archivo creado: {event.src_path}")
+                for wf in self.workflows:
+                    if wf["event"] == "file_created" :
+                        esta_en_directorio = event.src_path.startswith(wf["path"])
+                        es_recursivo = wf.get("recursive", True)
+                        es_directorio_exacto = os.path.dirname(event.src_path) == wf["path"].rstrip("/")
+                        if esta_en_directorio and (es_recursivo or es_directorio_exacto):
+                            if check_dependencies(wf):
+                                # span anidado 
+                                with tracer.start_as_current_span("execute.action") as action_span:
+                                    action_span.set_attribute("workflow.id",wf.get["id","N/A"])
+                                    action_span.set_attribute("workflow.type",wf.get["action_type"])
+                                    status = "failed"
+                                    try: 
+                                        if wf.get("action_type") == "script":
+                                            action = wf["action"].replace("<file>", event.src_path)
+                                            span.set_attribute("action_script",action)
+                                            logger.info(f"Ejecutando acción: {action}")
+                                            result = subprocess.run(action, shell=True, capture_output=True, text=True)
+                                            status = "success" if result.returncode == 0 else "failed"
+                                            action_span.set_attribute("action_returncode",result.returncode)
+                                        elif wf.get("action_type") == "kubernetes":
+                                            manifest = wf['manifest']
+                                            action_span.set_attribute("k8s_manifest",manifest)
+                                            logger.info(f"Ejecutando acción de Kubernetes: {manifest}")
+                                            succes = deploy(wf["manifest"])
+                                            status = "success" if succes else "failed"
+                                        # Marcamos estado final de span
+                                        action_span.set_attribute("action.status",status)    
+                                        if status == "failed":
+                                            action_span.set_status(Status(StatusCode.ERROR,"La accion fallo"))
+                                    except Exception as e: 
+                                        status = "failed"
+                                        action_span.set_status(Status(StatusCode.ERROR,str(e)))
+                                        action_span.record_exception(e)
+                                    finally:    
+                                        update_workflow_state(wf.get("id", ""), status)
+                            else:
+                                logger.warning(f"Dependencias no cumplidas para workflow {wf.get('id', '')}")
+                                span.add_event("Dependencies not met", {"workflow.id": wf.get('id', '')})
 
 # Carga la configuracion de workflows desde un YAML
 def load_workflows(config_path):
